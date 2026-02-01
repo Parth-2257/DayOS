@@ -1,0 +1,15 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* High contrast mode enhancements */
+[data-mode="high-contrast"] input,
+[data-mode="high-contrast"] .border {
+  border-width: 2px;
+}
+
+[data-mode="high-contrast"] button:focus,
+[data-mode="high-contrast"] input:focus {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
