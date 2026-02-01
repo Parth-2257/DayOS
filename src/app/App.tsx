@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Inbox, 
@@ -17,8 +17,8 @@ import {
   Plus
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import logoAsset from "figma:asset/1fb2f3732677bca349c0ff80f57fb9b80a18d847.png";
+import { ImageWithFallback } from './components/figma/ImageWithFallback.tsx';
+import logoAsset from "@/assets/image.png";
 import { Drawer } from 'vaul';
 
 // --- Types ---
@@ -26,9 +26,34 @@ type Section = 'inbox' | 'calendar' | 'followups';
 type Mode = 'light' | 'dark' | 'high-contrast';
 type CalendarViewType = 'week' | 'month';
 
+interface FollowUpItem {
+  id: number;
+  title: string;
+  context: string;
+  priority: string;
+  due: string;
+  isWeekendBacklog?: boolean;
+}
+
+interface InboxItem {
+  id: string;
+  title: string;
+  sender: string;
+  senderAvatar: string;
+  effort: string;
+  blocking?: string;
+  context?: string;
+  urgency?: boolean;
+}
+
 // --- Components ---
 
-const NotificationPanel = ({ isOpen, setIsOpen }) => {
+interface NotificationPanelProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
+const NotificationPanel = ({ isOpen, setIsOpen }: NotificationPanelProps) => {
   const notifications = [
     { id: 1, type: 'meeting', title: 'Strategy Sync', time: 'Starting in 10m', icon: Clock },
     { id: 2, type: 'followup', title: 'Review API Docs', time: 'Overdue', icon: Repeat },
@@ -67,7 +92,14 @@ const NotificationPanel = ({ isOpen, setIsOpen }) => {
   );
 };
 
-const RescheduleSheet = ({ isOpen, setIsOpen, onReschedule }) => {
+interface RescheduleSheetProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  onReschedule: (when: string) => void;
+  activeItem: FollowUpItem | null;
+}
+
+const RescheduleSheet = ({ isOpen, setIsOpen, onReschedule, activeItem }: RescheduleSheetProps) => {
   const [showCustom, setShowCustom] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -89,7 +121,7 @@ const RescheduleSheet = ({ isOpen, setIsOpen, onReschedule }) => {
             {!showCustom ? (
               <>
                 <h2 className="text-xl font-black tracking-tight mb-2 uppercase text-center">Reschedule</h2>
-                <p className="text-muted-foreground text-sm text-center mb-8 font-medium">When would you like to follow up?</p>
+                <p className="text-muted-foreground text-sm text-center mb-8 font-medium">When would you like to follow up on "{activeItem?.title}"?</p>
                 
                 <div className="space-y-3 mb-8">
                   {options.map((opt) => (
@@ -136,7 +168,7 @@ const RescheduleSheet = ({ isOpen, setIsOpen, onReschedule }) => {
                 </div>
                 <button 
                   onClick={() => {
-                    onReschedule('custom');
+                    onReschedule(selectedDate.toISOString());
                     setIsOpen(false);
                   }}
                   className="w-full h-14 bg-primary-accent text-white rounded-2xl font-black uppercase tracking-widest"
@@ -202,7 +234,13 @@ const FollowUpForm = () => {
   );
 };
 
-const TopBar = ({ mode, setMode, onOpenNotifications }) => {
+interface TopBarProps {
+  mode: Mode;
+  setMode: (mode: Mode) => void;
+  onOpenNotifications: () => void;
+}
+
+const TopBar = ({ mode, setMode, onOpenNotifications }: TopBarProps) => {
   const toggleMode = () => {
     if (mode === 'light') setMode('dark');
     else if (mode === 'dark') setMode('high-contrast');
@@ -247,11 +285,11 @@ const TopBar = ({ mode, setMode, onOpenNotifications }) => {
   );
 };
 
-const BottomNav = ({ activeSection, setActiveSection }) => {
+const BottomNav = ({ activeSection, setActiveSection }: { activeSection: Section; setActiveSection: (section: Section) => void }) => {
   const tabs = [
-    { id: 'inbox', icon: Inbox, label: 'Inbox' },
-    { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
-    { id: 'followups', icon: Repeat, label: 'Follow-ups' },
+    { id: 'inbox' as Section, icon: Inbox, label: 'Inbox' },
+    { id: 'calendar' as Section, icon: CalendarIcon, label: 'Calendar' },
+    { id: 'followups' as Section, icon: Repeat, label: 'Follow-ups' },
   ];
 
   return (
@@ -278,7 +316,7 @@ const BottomNav = ({ activeSection, setActiveSection }) => {
   );
 };
 
-const InboxCard = ({ item, isLater = false }) => {
+const InboxCard = ({ item, isLater = false }: { item: InboxItem; isLater?: boolean }) => {
   if (isLater) {
     return (
       <motion.div 
@@ -347,7 +385,7 @@ const InboxCard = ({ item, isLater = false }) => {
   );
 };
 
-const InboxSection = ({ title, items, badge, isLater = false }) => {
+const InboxSection = ({ title, items, badge, isLater = false }: { title: string; items: InboxItem[]; badge?: string; isLater?: boolean }) => {
   if (items.length === 0) return null;
 
   return (
@@ -386,8 +424,8 @@ const InboxView = () => {
       { id: 'e3', title: "Review technical specs for API v2", sender: "Dev Team", senderAvatar: "DT", effort: "30 min", context: "Due tomorrow" },
     ],
     later: [
-      { id: 'e4', title: "Monthly Newsletter: Tech Trends", sender: "Substack" },
-      { id: 'e5', title: "Company-wide social next Friday", sender: "HR" },
+      { id: 'e4', title: "Monthly Newsletter: Tech Trends", sender: "Substack", senderAvatar: "S", effort: "5 min" },
+      { id: 'e5', title: "Company-wide social next Friday", sender: "HR", senderAvatar: "HR", effort: "2 min" },
     ]
   };
 
@@ -409,8 +447,8 @@ const InboxView = () => {
           <CalendarIcon size={14} /> Meetings
         </h2>
         <InboxSection title="Now" items={meetings.now} badge="ACTIVE" />
-        <InboxSection title="Soon" items={meetings.soon} />
-        <InboxSection title="Later" items={meetings.later} isLater />
+        <InboxSection title="Soon" items={meetings.soon} badge="ACTIVE" />
+        <InboxSection title="Later" items={meetings.later} isLater badge="ACTIVE" />
       </div>
 
       <div>
@@ -418,8 +456,8 @@ const InboxView = () => {
           <Inbox size={14} /> Emails
         </h2>
         <InboxSection title="Now" items={emails.now} badge="PRIORITY" />
-        <InboxSection title="Soon" items={emails.soon} />
-        <InboxSection title="Later" items={emails.later} isLater />
+        <InboxSection title="Soon" items={emails.soon} badge="PRIORITY" />
+        <InboxSection title="Later" items={emails.later} isLater badge="PRIORITY" />
       </div>
 
       <Drawer.Root open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -466,14 +504,14 @@ const CalendarView = () => {
     30: [{ type: 'meeting', title: 'Weekly sync' }],
   };
 
-  const getPriorityIcon = (type) => {
+  const getPriorityIcon = (type: string) => {
     if (type === 'meeting') return <CalendarIcon size={8} />;
     if (type === 'followup') return <Repeat size={8} />;
     if (type === 'email') return <Inbox size={8} />;
     return null;
   };
 
-  const getPriorityValue = (type) => {
+  const getPriorityValue = (type: string) => {
     if (type === 'meeting') return 1;
     if (type === 'followup') return 2;
     if (type === 'email') return 3;
@@ -505,8 +543,8 @@ const CalendarView = () => {
                 <span className="text-[10px] font-bold mb-1 opacity-60 uppercase">{day}</span>
                 <span className="text-lg font-black tracking-tighter">{26 + i}</span>
                 <div className="absolute -bottom-1 flex gap-0.5">
-                  {indicators[i]?.inbox && <div className={`w-1 h-1 rounded-full ${i === selectedDayIndex ? 'bg-white' : 'bg-primary-accent'}`} />}
-                  {indicators[i]?.followups && <div className={`w-1 h-1 rounded-full ${i === selectedDayIndex ? 'bg-white/60' : 'bg-muted-foreground/40'}`} />}
+                  {indicators[i as keyof typeof indicators]?.inbox && <div className={`w-1 h-1 rounded-full ${i === selectedDayIndex ? 'bg-white' : 'bg-primary-accent'}`} />}
+                  {indicators[i as keyof typeof indicators]?.followups && <div className={`w-1 h-1 rounded-full ${i === selectedDayIndex ? 'bg-white/60' : 'bg-muted-foreground/40'}`} />}
                 </div>
               </button>
             ))}
@@ -533,7 +571,7 @@ const CalendarView = () => {
             {Array.from({ length: 31 }).map((_, i) => {
               const dayNum = i + 1;
               const isToday = dayNum === 30;
-              const priorityItems = monthPriorities[dayNum];
+              const priorityItems = monthPriorities[dayNum as keyof typeof monthPriorities];
               const dayOfWeek = (3 + i) % 7;
               const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
               return (
@@ -560,7 +598,7 @@ const CalendarView = () => {
 const FollowUpsView = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState(null);
+  const [activeItem, setActiveItem] = useState<FollowUpItem | null>(null);
   const [followups, setFollowups] = useState([
     { id: 1, title: "Send notes from Design Sync", context: "Auto-suggested based on meeting", priority: "high", due: "In 2h" },
     { id: 2, title: "Check in with Alex on API docs", context: "Waiting for response for 2 days", priority: "medium", due: "Today" },
@@ -569,12 +607,12 @@ const FollowUpsView = () => {
     { id: 5, title: "Update project documentation", context: "Deferred from weekday", priority: "low", due: "Sunday", isWeekendBacklog: true },
   ]);
 
-  const handleComplete = (id) => {
+  const handleComplete = (id: number) => {
     setFollowups(followups.filter(item => item.id !== id));
     toast.success('Follow-up completed');
   };
 
-  const handleReschedule = (when) => toast.success(`Rescheduled for ${when}`);
+  const handleReschedule = (when: string) => toast.success(`Rescheduled for ${when}`);
 
   return (
     <div className="px-4 py-6">
@@ -606,7 +644,7 @@ const FollowUpsView = () => {
           <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 h-[85vh] outline-none"><FollowUpForm /></Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
-      <RescheduleSheet isOpen={isRescheduleOpen} setIsOpen={setIsRescheduleOpen} onReschedule={handleReschedule} />
+      <RescheduleSheet isOpen={isRescheduleOpen} setIsOpen={setIsRescheduleOpen} onReschedule={handleReschedule} activeItem={activeItem} />
     </div>
   );
 };
